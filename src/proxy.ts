@@ -62,7 +62,7 @@ export function createProxy() {
       }
     },
     // Preserve response headers
-    onProxyRes: (proxyRes, req: Request, res: Response) => {
+    onProxyRes: (proxyRes, req: Request) => {
       // Preserve all response headers
       // The proxy middleware handles this automatically, but we can add custom logic here if needed
 
@@ -73,36 +73,31 @@ export function createProxy() {
         );
       }
     },
-    // Error handling
+    // Error handling (includes timeout errors)
     onError: (err: Error, req: Request, res: Response) => {
-      console.error('[PROXY ERROR]', {
+      const isTimeout = err.message.includes('timeout') || err.message.includes('ETIMEDOUT');
+      
+      console.error(isTimeout ? '[PROXY TIMEOUT]' : '[PROXY ERROR]', {
         error: err.message,
         path: req.path,
         method: req.method,
+        timeout: isTimeout ? config.proxy.timeout : undefined,
       });
 
       if (!res.headersSent) {
-        res.status(502).json({
-          error: 'Bad Gateway',
-          message: 'Failed to connect to upstream server',
-          upstream: config.proxy.upstreamUrl,
-        });
-      }
-    },
-    // Handle timeout
-    onTimeout: (req: Request, res: Response) => {
-      console.error('[PROXY TIMEOUT]', {
-        path: req.path,
-        method: req.method,
-        timeout: config.proxy.timeout,
-      });
-
-      if (!res.headersSent) {
-        res.status(504).json({
-          error: 'Gateway Timeout',
-          message: 'Request to upstream server timed out',
-          timeout: config.proxy.timeout,
-        });
+        if (isTimeout) {
+          res.status(504).json({
+            error: 'Gateway Timeout',
+            message: 'Request to upstream server timed out',
+            timeout: config.proxy.timeout,
+          });
+        } else {
+          res.status(502).json({
+            error: 'Bad Gateway',
+            message: 'Failed to connect to upstream server',
+            upstream: config.proxy.upstreamUrl,
+          });
+        }
       }
     },
   };
