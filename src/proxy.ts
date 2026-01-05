@@ -54,6 +54,16 @@ export function createProxy() {
         proxyReq.setHeader('X-Correlation-ID', correlationId);
       }
 
+      // If body was parsed by Express (e.g., express.json()), write it to proxy request
+      // This is necessary because http-proxy-middleware reads from the request stream,
+      // which has already been consumed by the body parser
+      if (req.body && Object.keys(req.body).length > 0) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader('Content-Type', 'application/json');
+        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
+
       // Log proxy request (optional, can be removed for minimal overhead)
       if (config.server.nodeEnv === 'development') {
         console.log(

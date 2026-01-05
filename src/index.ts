@@ -4,9 +4,10 @@ import { createProxy } from './proxy';
 
 const app = express();
 
-// Minimal middleware - no body parsing for pass-through
-// Only parse JSON for health check endpoint
-app.use(express.json({ limit: '1kb' }));
+// Body parsing with sufficient limit for GraphQL queries
+// GraphQL queries can be several KB, so we need a reasonable limit (10MB)
+// http-proxy-middleware will handle forwarding the parsed body
+app.use(express.json({ limit: '10mb' }));
 
 // Health check endpoint (for proxy itself)
 app.get('/health', (_req: Request, res: Response) => {
