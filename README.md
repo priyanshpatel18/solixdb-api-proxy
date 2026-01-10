@@ -1,13 +1,13 @@
 # SolixDB API Proxy
 
-Low-latency reverse proxy server that forwards requests from `api.solixdb.xyz` to `https://papi1.yeetlabs.xyz/`.
+Low-latency reverse proxy server that forwards requests from `api.solixdb.xyz` to the SolixDB API backend.
 
 ## Features
 
 - **Minimal Overhead**: Pure pass-through proxy with no request/response buffering
 - **HTTP Keep-Alive**: Reuses connections to upstream for optimal latency
 - **Request Streaming**: Streams large payloads without buffering
-- **Header Preservation**: Forwards all original headers and adds standard proxy headers
+- **Header Preservation**: Forwards all original headers including API keys and adds standard proxy headers
 - **Error Handling**: Graceful error handling with proper HTTP status codes
 - **Health Checks**: Built-in health check endpoint for monitoring
 
@@ -37,7 +37,7 @@ Environment variables (see `.env.example`):
 
 - `PORT` - Proxy server port (default: 3001)
 - `NODE_ENV` - Environment (development/production)
-- `UPSTREAM_URL` - Target API URL (default: https://papi1.yeetlabs.xyz)
+- `UPSTREAM_URL` - Target API URL (default: http://localhost:3000)
 - `TIMEOUT` - Request timeout in milliseconds (default: 30000)
 - `KEEP_ALIVE` - Enable HTTP keep-alive connections (default: true)
 
@@ -61,7 +61,7 @@ The proxy is a minimal Express.js server using `http-proxy-middleware` for effic
 - **No Body Parsing**: Requests are passed through without parsing to minimize overhead
 - **Connection Pooling**: HTTP keep-alive with connection reuse (max 50 sockets)
 - **Streaming**: Large responses are streamed directly to clients
-- **Header Forwarding**: All original headers are preserved, with standard `X-Forwarded-*` headers added
+- **Header Forwarding**: All original headers are preserved, including `x-api-key` for authentication, with standard `X-Forwarded-*` headers added
 
 ## Endpoints
 
@@ -77,20 +77,33 @@ Returns proxy status and configuration:
 {
   "status": "ok",
   "service": "api-proxy",
-  "upstream": "https://papi1.yeetlabs.xyz",
-  "timestamp": "2025-01-20T10:00:00.000Z"
+  "upstream": "http://localhost:3000",
+  "timestamp": "2025-01-20T10:00:00.000Z",
+  "version": "1.0.0"
 }
 ```
 
 ### All Other Endpoints
 
-All other requests are proxied to the upstream server:
+All other requests are proxied to the upstream API server:
 
-- `GET /` → `https://papi1.yeetlabs.xyz/`
-- `POST /graphql` → `https://papi1.yeetlabs.xyz/graphql`
-- `GET /api/v1/query` → `https://papi1.yeetlabs.xyz/api/v1/query`
-- `GET /health` → `https://papi1.yeetlabs.xyz/health`
+- `GET /` → `http://localhost:3000/`
+- `POST /api/v1/rpc` → `http://localhost:3000/api/v1/rpc`
+- `POST /api/v1/query` → `http://localhost:3000/api/v1/query`
+- `GET /health` → `http://localhost:3000/health` (upstream health check)
+- `GET /metrics` → `http://localhost:3000/metrics`
 - etc.
+
+**Note**: The proxy forwards all headers including `x-api-key` for API key authentication. API keys can also be passed via query parameter `?api-key=YOUR_KEY`.
+
+## API Key Authentication
+
+The proxy automatically forwards API key headers to the upstream API:
+
+- **Header**: `x-api-key: YOUR_API_KEY` - Forwarded as-is
+- **Query Parameter**: `?api-key=YOUR_API_KEY` - Forwarded in the request
+
+The upstream API will validate these API keys and apply plan-based rate limiting.
 
 ## Deployment
 
@@ -208,7 +221,13 @@ If you see 504 errors:
 - Run proxy on same infrastructure as upstream
 - Check network latency between proxy and upstream
 
+### API Key Authentication Issues
+
+If you see 401 errors:
+- Verify API key is being forwarded (check logs in development mode)
+- Ensure `x-api-key` header is being sent from client
+- Check that upstream API is properly configured with Supabase
+
 ## License
 
 MIT
-

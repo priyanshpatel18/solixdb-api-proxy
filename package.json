@@ -1,7 +1,7 @@
 {
   "name": "solixdb-api-proxy",
   "version": "1.0.0",
-  "description": "Low-latency reverse proxy for SolixDB API",
+  "description": "Low-latency reverse proxy for SolixDB REST/JSON-RPC API",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

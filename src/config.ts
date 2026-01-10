@@ -8,7 +8,7 @@ export const config = {
     nodeEnv: process.env.NODE_ENV || 'development',
   },
   proxy: {
-    upstreamUrl: process.env.UPSTREAM_URL || 'https://papi1.yeetlabs.xyz',
+    upstreamUrl: process.env.UPSTREAM_URL || 'http://localhost:3000', // Default to local API server
     timeout: parseInt(process.env.TIMEOUT || '30000', 10),
     keepAlive: process.env.KEEP_ALIVE !== 'false',
   },

@@ -4,18 +4,20 @@ import { createProxy } from './proxy';
 
 const app = express();
 
-// Body parsing with sufficient limit for GraphQL queries
-// GraphQL queries can be several KB, so we need a reasonable limit (10MB)
+// Body parsing with sufficient limit for JSON-RPC and SQL queries
+// JSON-RPC requests and SQL queries can be several KB, so we need a reasonable limit (10MB)
 // http-proxy-middleware will handle forwarding the parsed body
 app.use(express.json({ limit: '10mb' }));
 
 // Health check endpoint (for proxy itself)
+// Note: This is the proxy's own health check, not the upstream API's health check
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'api-proxy',
     upstream: config.proxy.upstreamUrl,
     timestamp: new Date().toISOString(),
+    version: '1.0.0',
   });
 });
 

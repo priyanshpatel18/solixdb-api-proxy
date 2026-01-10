@@ -11,7 +11,7 @@ export function createProxy() {
   const proxyOptions: Options = {
     target: config.proxy.upstreamUrl,
     changeOrigin: true,
-    ws: true, // Enable WebSocket support for GraphQL subscriptions
+    ws: true, // Enable WebSocket support (if needed in future)
     timeout: config.proxy.timeout,
     proxyTimeout: config.proxy.timeout,
     // Enable HTTP keep-alive for connection reuse
@@ -52,6 +52,12 @@ export function createProxy() {
       const correlationId = req.get('X-Correlation-ID');
       if (correlationId) {
         proxyReq.setHeader('X-Correlation-ID', correlationId);
+      }
+
+      // Preserve API key header (x-api-key or api-key query param)
+      const apiKey = req.get('x-api-key') || req.query['api-key'];
+      if (apiKey) {
+        proxyReq.setHeader('x-api-key', apiKey as string);
       }
 
       // If body was parsed by Express (e.g., express.json()), write it to proxy request
